@@ -13,3 +13,11 @@ Each folder is organized by the week of the assignment:
 - `prakash_week6_assignment/` – Week 6
 
 ---
+
+each week includes **hands-on tasks** focused on key tools and concepts such as:
+- Azure Data Factory (ADF)
+- Databricks
+- PySpark
+- SQL
+- ETL Pipelines
+- python
