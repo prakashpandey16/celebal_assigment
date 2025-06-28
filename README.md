@@ -2,16 +2,14 @@ This repository contains all the assignments and project work completed during t
 Each week focuses on hands-on tasks covering key technologies and concepts used in modern data engineering workflows, including Azure Data Factory, Databricks, PySpark, SQL, and ETL pipelines.
 
 
-## 📁 Folder Structure
+## 📦 Assignment Breakdown
 
-prakashpandey16/
-│ │ └── prakash_week1_assignment/
-│ │ └── celebal_assignment_week2/
-│ │ └── prakash_assignment_week3/
-│ │ └── prakash_week4_assignment/
-│ │ └── prakash_week5_assignment/
-│ │ └── prakash_week6_assignment/
-├── docs/
-│ └── README.md
-├── LICENSE
-└── .gitattributes
+Each folder is organized by the week of the assignment:
+- `prakash_week1_assignment/` – Week 1
+- `celebal_assignment_week2/` – Week 2
+- `prakash_assignment_week3/` – Week 3
+- `prakash_week4_assignment/` – Week 4
+- `prakash_week5_assignment/` – Week 5
+- `prakash_week6_assignment/` – Week 6
+
+---
