@@ -32,6 +32,6 @@ Feel free to explore each file for detailed implementation steps and explanation
 ## 👨‍💻 Author
 
 **Prakash Pandey**  
-📧 [LinkedIn](nkedin.com/in/prakash-pandey-2827522b1/)  
+📧 [LinkedIn](linkedin.com/in/prakash-pandey-2827522b1/)  
 🛠️ GitHub: [@prakashpandey16](https://github.com/prakashpandey16)
 
