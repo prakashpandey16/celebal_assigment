@@ -44,6 +44,7 @@ spark = SparkSession.builder.appName("Daily_ETL_Pipeline").getOrCreate()
 data_lake_path = "/mnt/datalake/container/"  # Replace with actual path
 
 # JDBC Configuration for SQL Server
+# Here  we add all our SQL server configurations to make it executable 
 jdbc_url = "jdbc:sqlserver://<server>:<port>;databaseName=<dbname>"
 jdbc_props = {
     "user": "<username>",
