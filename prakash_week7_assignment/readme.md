@@ -7,8 +7,8 @@ This project automates a daily ETL (Extract, Transform, Load) pipeline with the 
 - 🔄 Load each CSV file from the **Data Lake folder** into its respective **SQL database table**
 - 🧹 Perform a **truncate-and-load** operation on a **daily basis**
 - 📅 **Extract date information** from the filenames and include it in the dataset where required
+- 📂 All the required CSV files are placed in the folder: [**celebal_assignment_week_7_data/**](./celebal_assignment_week_7_data/)
 
-📂 All the required CSV files are placed in the folder: **`celebal_assignment_week_7_data/`**
 
 ---
 
