@@ -167,6 +167,5 @@ In this final step:
 
 ---
 
-**Author:** Prakash Pandey
-
-**LinkedIn:** [https://www.linkedin.com/in/prakash-pandey-2827522b1/](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
+**Author:** Prakash Pandey  
+**LinkedIn:** [Prakash Pandey](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
