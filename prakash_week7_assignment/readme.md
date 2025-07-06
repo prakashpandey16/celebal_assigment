@@ -4,21 +4,21 @@
 
 ## ✅ Objective
 
-I have 3 types of CSV files stored in a **Data Lake folder**, and my task is to:
+In this project, I am working with 3 types of CSV files stored in a **Data Lake container**. My goal is to:
 
-- 🔄 Load each into their respective **SQL database tables**
-- 🧹 Perform a **truncate-and-load** operation **daily**
-- 📅 Extract the **date from filenames** and include it as a column for certain files
+- 🔄 Load each file into its respective **SQL database table**
+- 🧹 Perform a **truncate-and-load** operation on a **daily basis**
+- 📅 Extract the **date from filenames** and use it in the data (where required)
 
 ---
 
 ## 🗂️ File Types and Rules
 
-| File Example                        | Target Table        | Transformation Required                                               |
-|------------------------------------|---------------------|------------------------------------------------------------------------|
-| `CUST_MSTR_20191112.csv`           | `CUST_MSTR`         | ➕ Add `date` column → `2019-11-12`                                     |
-| `master_child_export-20191112.csv` | `master_child`      | ➕ Add `date` → `2019-11-12`<br>➕ Add `date_key` → `20191112`           |
-| `H_ECOM_ORDER.csv`                 | `H_ECOM_Orders`     | ✅ Load as-is (no transformation)                                      |
+| File Name Example                   | Target Table        | What I Need To Do                                                   |
+|------------------------------------|---------------------|---------------------------------------------------------------------|
+| `CUST_MSTR_20191112.csv`           | `CUST_MSTR`         | ➕ Add a `date` column from filename → `2019-11-12`                 |
+| `master_child_export-20191112.csv` | `master_child`      | ➕ Add `date` → `2019-11-12`, and ➕ `date_key` → `20191112`         |
+| `H_ECOM_ORDER.csv`                 | `H_ECOM_Orders`     | ✅ No changes, load file as-is                                      |
 
 ---
 
@@ -26,13 +26,13 @@ I have 3 types of CSV files stored in a **Data Lake folder**, and my task is to:
 
 ---
 
-### ✅ Step 1: Spark & Environment Setup
+## ✅ Step 1: Spark Session & Setup
 
-Before I start processing files, I:
+In this step, I:
 
-- 🚀 Initialize a **Spark session**
-- 📁 Set the **data lake path**
-- 🔌 Configure **JDBC settings** to connect with the SQL database
+- 🚀 Start my **Spark session**
+- 📁 Define the **data lake path**
+- 🔌 Set up **JDBC configuration** for loading into the SQL database
 
 ```python
 from pyspark.sql import SparkSession
@@ -42,43 +42,45 @@ import re
 # Start Spark session
 spark = SparkSession.builder.appName("Daily_ETL_Pipeline").getOrCreate()
 
-# Data lake path
+# Define Data Lake base path
 data_lake_path = "/mnt/datalake/container/"  # Replace with actual path
 
-# JDBC configuration
+# JDBC Configuration for SQL Server
 jdbc_url = "jdbc:sqlserver://<server>:<port>;databaseName=<dbname>"
 jdbc_props = {
     "user": "<username>",
     "password": "<password>",
     "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
 }
+✅ Step 2: List All Files and Loop Through Them
+Here, I:
 
+🔍 List all the CSV files from the container
 
+📄 Loop through each file and apply logic depending on its name
 
-## 📍 Step 2: List and Loop Over Files
-
-In this step, I:
-
-- 🔍 List all files in the **data lake container**
-- 📄 Loop through each file and apply logic based on the filename pattern
-
-```python
+python
+Copy
+Edit
 files = dbutils.fs.ls(data_lake_path)
 
 for file in files:
     filename = file.name
     file_path = file.path
-
-
-### ✅ Step 3: Handle `CUST_MSTR_YYYYMMDD.csv`
-
+✅ Step 3: Handle CUST_MSTR_YYYYMMDD.csv Files
 In this step:
 
-- 🧠 Detect files that start with `CUST_MSTR_`
-- 🗓️ Extract the date from the filename and add it as a new column
-- 🧹 Truncate and insert into the `CUST_MSTR` table
+I identify files that start with CUST_MSTR_
 
-```python
+I extract the date from the file name and convert it to YYYY-MM-DD
+
+I add this as a new date column
+
+Then I truncate the CUST_MSTR table and load the data
+
+python
+Copy
+Edit
     if filename.startswith("CUST_MSTR_") and filename.endswith(".csv"):
         match = re.search(r"CUST_MSTR_(\d{8})\.csv", filename)
         if match:
@@ -88,24 +90,24 @@ In this step:
             df = spark.read.option("header", "true").csv(file_path)
             df = df.withColumn("date", lit(date_fmt))
 
-            # Truncate and load
             spark.sql("TRUNCATE TABLE CUST_MSTR")
             df.write.jdbc(url=jdbc_url, table="CUST_MSTR", mode="append", properties=jdbc_props)
 
             print(f"✅ Loaded: {filename} into CUST_MSTR")
+✅ Step 4: Handle master_child_export-YYYYMMDD.csv Files
+Here:
 
+I detect files that start with master_child_export-
 
+I extract both date (YYYY-MM-DD) and date_key (YYYYMMDD) from the filename
 
-### ✅ Step 4: Handle `master_child_export-YYYYMMDD.csv`
+I add both columns in the DataFrame
 
-In this step:
+I truncate the master_child table and load the data
 
-- 🧠 I detect files that start with `master_child_export-`
-- 🗓️ Extract both `date` and `date_key` from the filename
-- ➕ Add them as columns
-- 🧹 Truncate and insert into the `master_child` table
-
-```python
+python
+Copy
+Edit
     elif filename.startswith("master_child_export-") and filename.endswith(".csv"):
         match = re.search(r"master_child_export-(\d{8})\.csv", filename)
         if match:
@@ -119,19 +121,18 @@ In this step:
             df.write.jdbc(jdbc_url, "master_child", mode="append", properties=jdbc_props)
 
             print(f"✅ Loaded: {filename} into master_child")
+✅ Step 5: Handle H_ECOM_ORDER.csv File
+In this final step:
 
+I load the H_ECOM_ORDER.csv file
 
+I don't apply any transformation
 
+I just truncate and load it into the H_ECOM_Orders table
 
-### ✅ Step 5: Handle `H_ECOM_ORDER.csv`
-
-This file:
-
-- 📛 Has a fixed name: `H_ECOM_ORDER.csv`  
-- 🚫 Requires no transformations  
-- ⬇️ Is loaded directly into the `H_ECOM_Orders` table  
-
-```python
+python
+Copy
+Edit
     elif filename == "H_ECOM_ORDER.csv":
         df = spark.read.option("header", "true").csv(file_path)
 
@@ -139,18 +140,21 @@ This file:
         df.write.jdbc(jdbc_url, "H_ECOM_Orders", mode="append", properties=jdbc_props)
 
         print(f"✅ Loaded: {filename} into H_ECOM_Orders")
+📌 Daily ETL Summary
+File Name Example	What I Did	Target Table
+CUST_MSTR_20191112.csv	➕ Added date, 🧹 truncated old data, ⬇️ loaded file	CUST_MSTR
+master_child_export-20191112.csv	➕ Added date & date_key, 🧹 truncated, ⬇️ loaded	master_child
+H_ECOM_ORDER.csv	✅ Loaded as-is, 🧹 truncated old data	H_ECOM_Orders
 
+🧠 What I Did in Simple Words
+📁 I checked all files inside my Data Lake folder
 
-### 📌 Daily ETL Summary
+🧠 I used filename patterns to detect file types
 
-| File Name Example                   | Action Performed                                 | Target Table     |
-|------------------------------------|--------------------------------------------------|------------------|
-| `CUST_MSTR_20191112.csv`           | ➕ Add `date`, 🧹 truncate, ⬇️ load                | `CUST_MSTR`      |
-| `master_child_export-20191112.csv` | ➕ Add `date`, `date_key`, 🧹 truncate, ⬇️ load    | `master_child`   |
-| `H_ECOM_ORDER.csv`                 | ✅ Load as-is, 🧹 truncate, ⬇️ load                | `H_ECOM_Orders`  |
+📅 Extracted dates from filenames wherever needed
 
+➕ Added extra columns (date, date_key) where required
 
-- ✅ File detection via filename pattern
-- 📅 Date extraction from filenames
-- 🧹 Truncate and reload daily
-- 💾 Stored in SQL DB via JDBC
+🧹 Cleared (truncated) old data from tables
+
+💾 Loaded fresh data into SQL tables using JDBC
