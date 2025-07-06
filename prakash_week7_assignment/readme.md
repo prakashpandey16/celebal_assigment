@@ -1,16 +1,13 @@
-📘 ETL Project: Load Files from Data Lake to SQL
-✅ Objective
+# 📘 **ETL Project: Load Files from Data Lake to SQL**
+
+## ✅ **Objective**
+
 I have 3 types of CSV files stored in a Data Lake folder, and my goal is to:
 
-🔄 Load each file into its respective SQL database table
-
-🧹 Perform a truncate-and-load operation every day
-
-📅 Extract the date from filenames and use it in the data for some files
-
-📂 All the required CSV files are placed in the folder: celebal_assignment_week_7_data/
-
-
+- 🔄 Load each file into its respective SQL database table  
+- 🧹 Perform a truncate-and-load operation every day  
+- 📅 Extract the date from filenames and use it in the data for some files  
+- 📂 All the required CSV files are placed in the folder: [**celebal_assignment_week_7_data/**](./celebal_assignment_week_7_data/)
 ---
 
 ## 🗂️ File Types and Rules
