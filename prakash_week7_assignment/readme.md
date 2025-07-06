@@ -1,3 +1,23 @@
+# 📘 ETL Project: Load Files from Data Lake to SQL
+
+## ✅ Objective
+You have 3 types of CSV files stored in a **Data Lake folder**, and your goal is to:
+
+- 🔄 Load them into their respective **database tables**
+- 🧹 Perform **truncate-and-load** operation **daily**
+- 📅 Extract **date information from the file name** and use it in the data for certain files
+
+---
+
+## 🗂️ File Types and Rules
+
+| File Example                      | Load Target Table     | Transformation Needed                                           |
+|----------------------------------|------------------------|------------------------------------------------------------------|
+| `CUST_MSTR_20191112.csv`         | `CUST_MSTR`            | ➕ Add `date` column from filename → `2019-11-12`                |
+| `master_child_export-20191112.csv` | `master_child`       | ➕ Add `date` → `2019-11-12`<br>➕ Add `date_key` → `20191112`    |
+| `H_ECOM_ORDER.csv`               | `H_ECOM_Orders`        | ✅ Load **as-is** (no transformation)                            |
+
+---
 # 🧰 ETL Pipeline in 5 Steps
 
 ---
@@ -141,3 +161,9 @@ In this final step:
 * ➕ Added extra columns (`date`, `date_key`) where required
 * 🧹 Cleared (truncated) old data from tables
 * 💾 Loaded fresh data into SQL tables
+
+---
+
+**Author:** Prakash Pandey
+**LinkedIn:** [https://www.linkedin.com/in/prakash-pandey-2827522b1/](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
+
