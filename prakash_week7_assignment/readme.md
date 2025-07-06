@@ -1,6 +1,7 @@
 📘 ETL Project: Load Files from Data Lake to SQL
 
 ✅ Objective
+
 I have 3 types of CSV files stored in a Data Lake folder, and my goal is to:
 
 - 🔄 Load each file into its respective SQL database table
