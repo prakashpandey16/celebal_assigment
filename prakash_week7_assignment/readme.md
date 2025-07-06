@@ -2,7 +2,7 @@
 
 ## ✅ Objective
 
-I have 3 types of CSV files stored in a **Data Lake folder**, and my goal is to:
+We have 3 types of CSV files stored in a **Data Lake folder**, and my goal is to:
 
 * 🔄 Load each file into its respective **SQL database table**
 * 🧹 Perform a **truncate-and-load** operation **every day**
