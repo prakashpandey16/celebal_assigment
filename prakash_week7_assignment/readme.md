@@ -1,27 +1,3 @@
-# 🧾 ETL Project: Load Files from Data Lake to SQL
-
----
-
-## ✅ Objective
-
-In this project, I am working with 3 types of CSV files stored in a **Data Lake container**. My goal is to:
-
-- 🔄 Load each file into its respective **SQL database table**
-- 🧹 Perform a **truncate-and-load** operation on a **daily basis**
-- 📅 Extract the **date from filenames** and use it in the data (where required)
-
----
-
-## 🗂️ File Types and Rules
-
-| File Name Example                   | Target Table        | What I Need To Do                                                   |
-|------------------------------------|---------------------|---------------------------------------------------------------------|
-| `CUST_MSTR_20191112.csv`           | `CUST_MSTR`         | ➕ Add a `date` column from filename → `2019-11-12`                 |
-| `master_child_export-20191112.csv` | `master_child`      | ➕ Add `date` → `2019-11-12`, and ➕ `date_key` → `20191112`         |
-| `H_ECOM_ORDER.csv`                 | `H_ECOM_Orders`     | ✅ No changes, load file as-is                                      |
-
----
-
 # 🧰 ETL Pipeline in 5 Steps
 
 ---
@@ -30,9 +6,9 @@ In this project, I am working with 3 types of CSV files stored in a **Data Lake 
 
 In this step, I:
 
-- 🚀 Start my **Spark session**
-- 📁 Define the **data lake path**
-- 🔌 Set up **JDBC configuration** for loading into the SQL database
+* 🚀 Start my Spark session
+* 📁 Define the data lake path
+* 🔌 Set up JDBC configuration for loading into the SQL database
 
 ```python
 from pyspark.sql import SparkSession
@@ -52,35 +28,37 @@ jdbc_props = {
     "password": "<password>",
     "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
 }
-✅ Step 2: List All Files and Loop Through Them
+```
+
+---
+
+## ✅ Step 2: List All Files and Loop Through Them
+
 Here, I:
 
-🔍 List all the CSV files from the container
+* 🔍 List all the CSV files from the container
+* 📄 Loop through each file and apply logic depending on its name
 
-📄 Loop through each file and apply logic depending on its name
-
-python
-Copy
-Edit
+```python
 files = dbutils.fs.ls(data_lake_path)
 
 for file in files:
     filename = file.name
     file_path = file.path
-✅ Step 3: Handle CUST_MSTR_YYYYMMDD.csv Files
+```
+
+---
+
+## ✅ Step 3: Handle `CUST_MSTR_YYYYMMDD.csv` Files
+
 In this step:
 
-I identify files that start with CUST_MSTR_
+* I identify files that start with `CUST_MSTR_`
+* I extract the date from the file name and convert it to `YYYY-MM-DD`
+* I add this as a new `date` column
+* Then I truncate the `CUST_MSTR` table and load the data
 
-I extract the date from the file name and convert it to YYYY-MM-DD
-
-I add this as a new date column
-
-Then I truncate the CUST_MSTR table and load the data
-
-python
-Copy
-Edit
+```python
     if filename.startswith("CUST_MSTR_") and filename.endswith(".csv"):
         match = re.search(r"CUST_MSTR_(\d{8})\.csv", filename)
         if match:
@@ -94,20 +72,20 @@ Edit
             df.write.jdbc(url=jdbc_url, table="CUST_MSTR", mode="append", properties=jdbc_props)
 
             print(f"✅ Loaded: {filename} into CUST_MSTR")
-✅ Step 4: Handle master_child_export-YYYYMMDD.csv Files
+```
+
+---
+
+## ✅ Step 4: Handle `master_child_export-YYYYMMDD.csv` Files
+
 Here:
 
-I detect files that start with master_child_export-
+* I detect files that start with `master_child_export-`
+* I extract both `date` (`YYYY-MM-DD`) and `date_key` (`YYYYMMDD`) from the filename
+* I add both columns to the DataFrame
+* I truncate the `master_child` table and load the data
 
-I extract both date (YYYY-MM-DD) and date_key (YYYYMMDD) from the filename
-
-I add both columns in the DataFrame
-
-I truncate the master_child table and load the data
-
-python
-Copy
-Edit
+```python
     elif filename.startswith("master_child_export-") and filename.endswith(".csv"):
         match = re.search(r"master_child_export-(\d{8})\.csv", filename)
         if match:
@@ -121,18 +99,19 @@ Edit
             df.write.jdbc(jdbc_url, "master_child", mode="append", properties=jdbc_props)
 
             print(f"✅ Loaded: {filename} into master_child")
-✅ Step 5: Handle H_ECOM_ORDER.csv File
+```
+
+---
+
+## ✅ Step 5: Handle `H_ECOM_ORDER.csv` File
+
 In this final step:
 
-I load the H_ECOM_ORDER.csv file
+* I load the `H_ECOM_ORDER.csv` file
+* I don't apply any transformation
+* I just truncate and load it into the `H_ECOM_Orders` table
 
-I don't apply any transformation
-
-I just truncate and load it into the H_ECOM_Orders table
-
-python
-Copy
-Edit
+```python
     elif filename == "H_ECOM_ORDER.csv":
         df = spark.read.option("header", "true").csv(file_path)
 
@@ -140,21 +119,25 @@ Edit
         df.write.jdbc(jdbc_url, "H_ECOM_Orders", mode="append", properties=jdbc_props)
 
         print(f"✅ Loaded: {filename} into H_ECOM_Orders")
-📌 Daily ETL Summary
-File Name Example	What I Did	Target Table
-CUST_MSTR_20191112.csv	➕ Added date, 🧹 truncated old data, ⬇️ loaded file	CUST_MSTR
-master_child_export-20191112.csv	➕ Added date & date_key, 🧹 truncated, ⬇️ loaded	master_child
-H_ECOM_ORDER.csv	✅ Loaded as-is, 🧹 truncated old data	H_ECOM_Orders
+```
 
-🧠 What I Did in Simple Words
-📁 I checked all files inside my Data Lake folder
+---
 
-🧠 I used filename patterns to detect file types
+## 📌 Daily ETL Summary
 
-📅 Extracted dates from filenames wherever needed
+| File Name Example                  | What I Did                                            | Target Table    |
+| ---------------------------------- | ----------------------------------------------------- | --------------- |
+| `CUST_MSTR_20191112.csv`           | ➕ Added `date`, 🧹 truncated old data, ⬇️ loaded file | `CUST_MSTR`     |
+| `master_child_export-20191112.csv` | ➕ Added `date` & `date_key`, 🧹 truncated, ⬇️ loaded  | `master_child`  |
+| `H_ECOM_ORDER.csv`                 | ✅ Loaded as-is, 🧹 truncated old data                 | `H_ECOM_Orders` |
 
-➕ Added extra columns (date, date_key) where required
+---
 
-🧹 Cleared (truncated) old data from tables
+## 🧠 What I Did in Simple Words
 
-💾 Loaded fresh data into SQL tables using JDBC
+* 📁 I checked all files inside my Data Lake folder
+* 🧠 I used filename patterns to detect file types
+* 📅 Extracted dates from filenames wherever needed
+* ➕ Added extra columns (`date`, `date_key`) where required
+* 🧹 Cleared (truncated) old data from tables
+* 💾 Loaded fresh data into SQL tables
