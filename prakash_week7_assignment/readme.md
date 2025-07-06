@@ -1,23 +1,25 @@
 # 📘 ETL Project: Load Files from Data Lake to SQL
 
 ## ✅ Objective
-You have 3 types of CSV files stored in a **Data Lake folder**, and your goal is to:
 
-- 🔄 Load them into their respective **database tables**
-- 🧹 Perform **truncate-and-load** operation **daily**
-- 📅 Extract **date information from the file name** and use it in the data for certain files
+I have 3 types of CSV files stored in a **Data Lake folder**, and my goal is to:
+
+* 🔄 Load each file into its respective **SQL database table**
+* 🧹 Perform a **truncate-and-load** operation **every day**
+* 📅 Extract the **date from filenames** and use it in the data for some files
 
 ---
 
 ## 🗂️ File Types and Rules
 
-| File Example                      | Load Target Table     | Transformation Needed                                           |
-|----------------------------------|------------------------|------------------------------------------------------------------|
-| `CUST_MSTR_20191112.csv`         | `CUST_MSTR`            | ➕ Add `date` column from filename → `2019-11-12`                |
-| `master_child_export-20191112.csv` | `master_child`       | ➕ Add `date` → `2019-11-12`<br>➕ Add `date_key` → `20191112`    |
-| `H_ECOM_ORDER.csv`               | `H_ECOM_Orders`        | ✅ Load **as-is** (no transformation)                            |
+| File Example                       | Load Target Table | Transformation Needed                                        |
+| ---------------------------------- | ----------------- | ------------------------------------------------------------ |
+| `CUST_MSTR_20191112.csv`           | `CUST_MSTR`       | ➕ Add `date` column from filename → `2019-11-12`             |
+| `master_child_export-20191112.csv` | `master_child`    | ➕ Add `date` → `2019-11-12`<br>➕ Add `date_key` → `20191112` |
+| `H_ECOM_ORDER.csv`                 | `H_ECOM_Orders`   | ✅ Load file **as-is** (no transformation needed)             |
 
 ---
+
 # 🧰 ETL Pipeline in 5 Steps
 
 ---
@@ -26,9 +28,9 @@ You have 3 types of CSV files stored in a **Data Lake folder**, and your goal is
 
 In this step, I:
 
-* 🚀 Start my Spark session
-* 📁 Define the data lake path
-* 🔌 Set up JDBC configuration for loading into the SQL database
+* 🚀 Start the Spark session
+* 📁 Set the data lake folder path
+* 🔌 Configure JDBC settings to connect with the SQL database
 
 ```python
 from pyspark.sql import SparkSession
@@ -56,8 +58,8 @@ jdbc_props = {
 
 Here, I:
 
-* 🔍 List all the CSV files from the container
-* 📄 Loop through each file and apply logic depending on its name
+* 🔍 Read all CSV files from the container
+* 📄 Loop through each file and identify which type it is
 
 ```python
 files = dbutils.fs.ls(data_lake_path)
@@ -73,10 +75,10 @@ for file in files:
 
 In this step:
 
-* I identify files that start with `CUST_MSTR_`
-* I extract the date from the file name and convert it to `YYYY-MM-DD`
-* I add this as a new `date` column
-* Then I truncate the `CUST_MSTR` table and load the data
+* I filter files starting with `CUST_MSTR_`
+* Extract the date from the filename and format it as `YYYY-MM-DD`
+* Add the extracted date as a new column
+* Truncate the `CUST_MSTR` table and load the updated data
 
 ```python
     if filename.startswith("CUST_MSTR_") and filename.endswith(".csv"):
@@ -98,12 +100,12 @@ In this step:
 
 ## ✅ Step 4: Handle `master_child_export-YYYYMMDD.csv` Files
 
-Here:
+In this step:
 
-* I detect files that start with `master_child_export-`
-* I extract both `date` (`YYYY-MM-DD`) and `date_key` (`YYYYMMDD`) from the filename
-* I add both columns to the DataFrame
-* I truncate the `master_child` table and load the data
+* I filter files that begin with `master_child_export-`
+* Extract `date` in `YYYY-MM-DD` and `date_key` in `YYYYMMDD` format
+* Add both columns to the data
+* Truncate the `master_child` table and insert fresh data
 
 ```python
     elif filename.startswith("master_child_export-") and filename.endswith(".csv"):
@@ -127,9 +129,9 @@ Here:
 
 In this final step:
 
-* I load the `H_ECOM_ORDER.csv` file
-* I don't apply any transformation
-* I just truncate and load it into the `H_ECOM_Orders` table
+* I handle the file named `H_ECOM_ORDER.csv`
+* No transformation is required
+* Truncate the existing table and load fresh data into `H_ECOM_Orders`
 
 ```python
     elif filename == "H_ECOM_ORDER.csv":
@@ -155,15 +157,15 @@ In this final step:
 
 ## 🧠 What I Did in Simple Words
 
-* 📁 I checked all files inside my Data Lake folder
-* 🧠 I used filename patterns to detect file types
-* 📅 Extracted dates from filenames wherever needed
-* ➕ Added extra columns (`date`, `date_key`) where required
-* 🧹 Cleared (truncated) old data from tables
-* 💾 Loaded fresh data into SQL tables
+* 📁 I listed all files from my Data Lake folder
+* 🧠 Used file name pattern to recognize file type
+* 📅 Extracted the date from file names
+* ➕ Added new columns (`date`, `date_key`) when needed
+* 🧹 Cleared old table data using truncate
+* 💾 Loaded clean data into respective SQL tables
 
 ---
 
 **Author:** Prakash Pandey
-**LinkedIn:** [https://www.linkedin.com/in/prakash-pandey-2827522b1/](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
 
+**LinkedIn:** [https://www.linkedin.com/in/prakash-pandey-2827522b1/](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
