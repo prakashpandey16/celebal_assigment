@@ -2,11 +2,13 @@
 
 ## ✅ Objective
 
-We have 3 types of CSV files stored in a **Data Lake folder**, and my goal is to:
+This project automates a daily ETL (Extract, Transform, Load) pipeline with the following goals:
 
-* 🔄 Load each file into its respective **SQL database table**
-* 🧹 Perform a **truncate-and-load** operation **every day**
-* 📅 Extract the **date from filenames** and use it in the data for some files
+- 🔄 Load each CSV file from the **Data Lake folder** into its respective **SQL database table**
+- 🧹 Perform a **truncate-and-load** operation on a **daily basis**
+- 📅 **Extract date information** from the filenames and include it in the dataset where required
+
+📂 All the required CSV files are placed in the folder: **`celebal_assignment_week_7_data/`**
 
 ---
 
