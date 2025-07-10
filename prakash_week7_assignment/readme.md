@@ -1,171 +1,174 @@
-# 📘 **ETL Project: Load Files from Data Lake to SQL**
 
-## ✅ **Objective**
+# 📘 Databricks Delta Table Automation Project (Enhanced)
 
-I have 3 types of CSV files stored in a Data Lake folder, and my goal is to:
+## ✅ Objective
 
-- 🔄 Load each file into its respective SQL database table  
-- 🧹 Perform a truncate-and-load operation every day  
-- 📅 Extract the date from filenames and use it in the data for some files  
-- 📂 All the required CSV files are placed in the folder: [**celebal_assignment_week_7_data/**](./celebal_assignment_week_7_data/)
----
+This project simulates a mini-ETL pipeline using **Databricks Community Edition**, **Delta Lake**, and a **local Python script** to:
 
-## 🗂️ File Types and Rules
-
-| File Example                       | Load Target Table | Transformation Needed                                        |
-| ---------------------------------- | ----------------- | ------------------------------------------------------------ |
-| `CUST_MSTR_20191112.csv`           | `CUST_MSTR`       | ➕ Add `date` column from filename → `2019-11-12`             |
-| `master_child_export-20191112.csv` | `master_child`    | ➕ Add `date` → `2019-11-12`<br>➕ Add `date_key` → `20191112` |
-| `H_ECOM_ORDER.csv`                 | `H_ECOM_Orders`   | ✅ Load file **as-is** (no transformation needed)             |
+- 🔄 Generate and ingest fake user data
+- 🧾 Track versioned Delta table changes
+- 📤 Export the latest data to CSV on DBFS
+- 🕒 Schedule batch ingestion (every N minutes)
+- 📨 Email the latest data as CSV and HTML preview (from local machine)
 
 ---
 
-# 🧰 ETL Pipeline in 5 Steps
+## 🗂️ Components and Enhancements
+
+| Component         | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| Fake Data Gen     | ➕ Add `ingestion_time` (timezone-aware)                                    |
+| Delta Table       | ✅ Append data to Delta table (`user_delta_table`)                          |
+| Export to CSV     | 🔁 Export top 100 rows to `/dbfs/tmp` for download                         |
+| Versioning        | 🔍 Track table versions via Delta Table API                                 |
+| Email Notification| 📧 Email latest CSV + HTML preview using Gmail SMTP                         |
+| Local Execution   | 🖥️ Send email using a Python script from your system                       |
+| Scheduler         | ⏱️ Option to trigger this pipeline every N minutes using notebook jobs      |
 
 ---
+
+# 🧰 Data Ingestion Pipeline in 6 Steps
 
 ## ✅ Step 1: Spark Session & Setup
 
-In this step, I:
-
-* 🚀 Start the Spark session
-* 📁 Set the data lake folder path
-* 🔌 Configure JDBC settings to connect with the SQL database
-
 ```python
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
-import re
+from delta.tables import DeltaTable
+from faker import Faker
+import pandas as pd
+import pytz
 
-# Start Spark session
-spark = SparkSession.builder.appName("Daily_ETL_Pipeline").getOrCreate()
+delta_path = "dbfs:/tmp/user_delta_table"
+csv_export_path = "dbfs:/tmp/user_data_latest"
+rows_per_batch = 100
+timezone = "Asia/Kolkata"
 
-# Define Data Lake base path
-data_lake_path = "/mnt/datalake/container/"  # Replace with actual path
-
-# JDBC Configuration for SQL Server
-# Here  we add all our SQL server configurations to make it executable 
-jdbc_url = "jdbc:sqlserver://<server>:<port>;databaseName=<dbname>"
-jdbc_props = {
-    "user": "<username>",
-    "password": "<password>",
-    "driver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-}
+fake = Faker()
+Faker.seed(42)
 ```
 
----
-
-## ✅ Step 2: List All Files and Loop Through Them
-
-Here, I:
-
-* 🔍 Read all CSV files from the container
-* 📄 Loop through each file and identify which type it is
+## ✅ Step 2: Generate Fake User Data
 
 ```python
-files = dbutils.fs.ls(data_lake_path)
-
-for file in files:
-    filename = file.name
-    file_path = file.path
+def generate_fake_data(n):
+    now = pd.Timestamp.now(tz=pytz.timezone(timezone))
+    return pd.DataFrame([{
+        "name": fake.name(),
+        "address": fake.address().replace("\n", ", "),
+        "email": fake.email(),
+        "ingestion_time": now
+    } for _ in range(n)])
 ```
 
----
-
-## ✅ Step 3: Handle `CUST_MSTR_YYYYMMDD.csv` Files
-
-In this step:
-
-* I filter files starting with `CUST_MSTR_`
-* Extract the date from the filename and format it as `YYYY-MM-DD`
-* Add the extracted date as a new column
-* Truncate the `CUST_MSTR` table and load the updated data
+## ✅ Step 3: Append to Delta Table (with version control)
 
 ```python
-    if filename.startswith("CUST_MSTR_") and filename.endswith(".csv"):
-        match = re.search(r"CUST_MSTR_(\d{8})\.csv", filename)
-        if match:
-            date_raw = match.group(1)
-            date_fmt = f"{date_raw[:4]}-{date_raw[4:6]}-{date_raw[6:]}"
-            
-            df = spark.read.option("header", "true").csv(file_path)
-            df = df.withColumn("date", lit(date_fmt))
-
-            spark.sql("TRUNCATE TABLE CUST_MSTR")
-            df.write.jdbc(url=jdbc_url, table="CUST_MSTR", mode="append", properties=jdbc_props)
-
-            print(f"✅ Loaded: {filename} into CUST_MSTR")
+def create_or_append_delta_table(pdf):
+    df = spark.createDataFrame(pdf)
+    if DeltaTable.isDeltaTable(spark, delta_path):
+        df.write.format("delta").mode("append").save(delta_path)
+    else:
+        df.write.format("delta").mode("overwrite").save(delta_path)
 ```
 
----
-
-## ✅ Step 4: Handle `master_child_export-YYYYMMDD.csv` Files
-
-In this step:
-
-* I filter files that begin with `master_child_export-`
-* Extract `date` in `YYYY-MM-DD` and `date_key` in `YYYYMMDD` format
-* Add both columns to the data
-* Truncate the `master_child` table and insert fresh data
+## ✅ Step 4: Export Latest Records to CSV
 
 ```python
-    elif filename.startswith("master_child_export-") and filename.endswith(".csv"):
-        match = re.search(r"master_child_export-(\d{8})\.csv", filename)
-        if match:
-            date_key = match.group(1)
-            date_fmt = f"{date_key[:4]}-{date_key[4:6]}-{date_key[6:]}"
-            
-            df = spark.read.option("header", "true").csv(file_path)
-            df = df.withColumn("date", lit(date_fmt)).withColumn("date_key", lit(date_key))
+def export_latest_rows(n=100):
+    df_all = spark.read.format("delta").load(delta_path)
+    df_latest = df_all.orderBy("ingestion_time", ascending=False).limit(n)
 
-            spark.sql("TRUNCATE TABLE master_child")
-            df.write.jdbc(jdbc_url, "master_child", mode="append", properties=jdbc_props)
+    dbutils.fs.rm(csv_export_path, recurse=True)
+    df_latest.coalesce(1).write.mode("overwrite").option("header", "true").csv(csv_export_path)
 
-            print(f"✅ Loaded: {filename} into master_child")
+    return df_latest
 ```
 
----
-
-## ✅ Step 5: Handle `H_ECOM_ORDER.csv` File
-
-In this final step:
-
-* I handle the file named `H_ECOM_ORDER.csv`
-* No transformation is required
-* Truncate the existing table and load fresh data into `H_ECOM_Orders`
+## ✅ Step 5: Show Download Link for CSV
 
 ```python
-    elif filename == "H_ECOM_ORDER.csv":
-        df = spark.read.option("header", "true").csv(file_path)
+def show_download_link():
+    files = dbutils.fs.ls(csv_export_path)
+    for f in files:
+        if f.name.endswith(".csv"):
+            print(f"📥 Download: https://community.cloud.databricks.com/files/tmp/user_data_latest/{f.name}")
+```
 
-        spark.sql("TRUNCATE TABLE H_ECOM_Orders")
-        df.write.jdbc(jdbc_url, "H_ECOM_Orders", mode="append", properties=jdbc_props)
+## ✅ Step 6: Track Delta Table Versions
 
-        print(f"✅ Loaded: {filename} into H_ECOM_Orders")
+```python
+def get_delta_table_versions():
+    dt = DeltaTable.forPath(spark, delta_path)
+    return dt.history().select("version", "timestamp", "operation").orderBy("version", ascending=False)
+
+get_delta_table_versions().show()
+```
+
+## 🚀 Run the Full Ingestion + Export Pipeline
+
+```python
+pdf = generate_fake_data(rows_per_batch)
+create_or_append_delta_table(pdf)
+export_latest_rows()
+show_download_link()
 ```
 
 ---
 
-## 📌 Daily ETL Summary
+## 📨 Email Script (Run on Local Machine)
 
-| File Name Example                  | What I Did                                            | Target Table    |
-| ---------------------------------- | ----------------------------------------------------- | --------------- |
-| `CUST_MSTR_20191112.csv`           | ➕ Added `date`, 🧹 truncated old data, ⬇️ loaded file | `CUST_MSTR`     |
-| `master_child_export-20191112.csv` | ➕ Added `date` & `date_key`, 🧹 truncated, ⬇️ loaded  | `master_child`  |
-| `H_ECOM_ORDER.csv`                 | ✅ Loaded as-is, 🧹 truncated old data                 | `H_ECOM_Orders` |
+```python
+import smtplib
+import pandas as pd
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
+sender_email = "youremail@gmail.com"
+receiver_email = "recipient@example.com"
+app_password = "your_gmail_app_password"
+csv_file = "user_data_latest.csv"
+
+df = pd.read_csv(csv_file)
+html_table = df.head(10).to_html(index=False)
+
+subject = "📊 Delta Table Export (Latest Data)"
+body_text = "Hi,\n\nPlease find attached the latest exported data from the Delta table.\n\nRegards,\nPrakash Pandey"
+
+msg = MIMEMultipart("alternative")
+msg["From"] = sender_email
+msg["To"] = receiver_email
+msg["Subject"] = subject
+msg.attach(MIMEText(body_text, "plain"))
+msg.attach(MIMEText(f"<p>{body_text}</p>{html_table}", "html"))
+
+with open(csv_file, "rb") as f:
+    part = MIMEApplication(f.read(), Name=csv_file)
+    part['Content-Disposition'] = f'attachment; filename="{csv_file}"'
+    msg.attach(part)
+
+server = smtplib.SMTP("smtp.gmail.com", 587)
+server.starttls()
+server.login(sender_email, app_password)
+server.send_message(msg)
+server.quit()
+
+print("✅ Email sent with attachment and HTML preview.")
+```
 
 ---
 
-## 🧠 What I Did in Simple Words
+## 🔐 Gmail App Password Setup
 
-* 📁 I listed all files from my Data Lake folder
-* 🧠 Used file name pattern to recognize file type
-* 📅 Extracted the date from file names
-* ➕ Added new columns (`date`, `date_key`) when needed
-* 🧹 Cleared old table data using truncate
-* 💾 Loaded clean data into respective SQL tables
+1. Go to: https://myaccount.google.com/apppasswords
+2. Enable 2-Step Verification
+3. Generate App Password for "Mail"
+4. Use this password in the local script
 
 ---
 
-**Author:** Prakash Pandey  
-**LinkedIn:** [Prakash Pandey](https://www.linkedin.com/in/prakash-pandey-2827522b1/)
+## 👨‍💻 Author
+
+**Prakash Pandey**  
+🎓 BCA Student | 🚀 Aspiring Data Engineer  
+🔗 [LinkedIn](https://www.linkedin.com/in/prakash-pandey-1234)
