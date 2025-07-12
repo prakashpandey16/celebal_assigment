@@ -12,7 +12,7 @@ Each folder is organized by the week of the assignment:
 - `prakash_week5_assignment/` – Week 5
 - `prakash_week6_assignment/` – Week 6
 - `prakash_week7_assignment/` – Week 7
-- `prakash_week7_assignment/` – Week 8
+- `prakash_week8_assignment/` – Week 8
 
 
 ---
